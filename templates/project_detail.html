@@ -1,0 +1,266 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ project.name }} — TaskFlow{% endblock %}
+{% block topbar_title %}{{ project.name }}{% endblock %}
+
+{% block content %}
+
+<!-- Project Header -->
+<div class="project-detail-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('main_routes.projects') }}">Projects</a> / {{ project.name }}</div>
+    <p class="project-detail-desc">{{ project.description or 'No description provided.' }}</p>
+    <div class="project-meta">
+      <span>Created by <strong>{{ project.creator.name }}</strong></span>
+      <span>·</span>
+      <span>{{ project.created_at.strftime('%B %d, %Y') }}</span>
+      <span>·</span>
+      <span>{{ members|length }} member{% if members|length != 1 %}s{% endif %}</span>
+    </div>
+  </div>
+  <div class="project-header-actions">
+    {% if my_role == 'admin' %}
+    <button class="btn-primary" onclick="openModal('addTaskModal')">+ Add Task</button>
+    <button class="btn-ghost" onclick="openModal('addMemberModal')">+ Add Member</button>
+    <form method="POST" action="{{ url_for('main_routes.delete_project', project_id=project.id) }}"
+          onsubmit="return confirm('Delete this project and all its tasks?')">
+      <button type="submit" class="btn-danger">Delete Project</button>
+    </form>
+    {% else %}
+    <button class="btn-primary" onclick="openModal('addTaskModal')">+ Add Task</button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Task Status Summary -->
+{% set todo_count = tasks|selectattr('status','eq','todo')|list|length %}
+{% set ip_count   = tasks|selectattr('status','eq','in_progress')|list|length %}
+{% set done_count = tasks|selectattr('status','eq','done')|list|length %}
+<div class="status-bar-wrap">
+  <div class="status-bar">
+    {% if tasks|length > 0 %}
+    <div class="status-bar-fill status-bar-fill--todo"   style="width:{{ (todo_count / tasks|length * 100)|round|int }}%"></div>
+    <div class="status-bar-fill status-bar-fill--ip"     style="width:{{ (ip_count / tasks|length * 100)|round|int }}%"></div>
+    <div class="status-bar-fill status-bar-fill--done"   style="width:{{ (done_count / tasks|length * 100)|round|int }}%"></div>
+    {% else %}
+    <div class="status-bar-fill status-bar-fill--empty" style="width:100%"></div>
+    {% endif %}
+  </div>
+  <div class="status-legend">
+    <span class="legend-dot legend-dot--todo"></span> To Do ({{ todo_count }})
+    <span class="legend-dot legend-dot--ip"></span> In Progress ({{ ip_count }})
+    <span class="legend-dot legend-dot--done"></span> Done ({{ done_count }})
+  </div>
+</div>
+
+<!-- Two-column layout -->
+<div class="dash-columns">
+
+  <!-- Tasks Table -->
+  <div class="dash-panel dash-panel--wide">
+    <div class="panel-header">
+      <h3>Tasks ({{ tasks|length }})</h3>
+    </div>
+
+    {% if tasks %}
+    <div class="table-wrap">
+      <table class="dash-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Assigned To</th>
+            <th>Priority</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            {% if my_role == 'admin' %}<th></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in tasks %}
+          <tr class="{% if task.due_date and task.due_date < today and task.status != 'done' %}row-overdue{% endif %}">
+            <td>
+              <span class="task-title-cell">{{ task.title }}</span>
+              {% if task.description %}
+              <span class="task-desc-cell">{{ task.description[:60] }}{% if task.description|length > 60 %}…{% endif %}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if task.assigned_to %}
+              <div class="assignee">
+                <div class="mini-avatar">{{ task.assigned_to.name[0].upper() }}</div>
+                {{ task.assigned_to.name }}
+              </div>
+              {% else %}
+              <span class="text-muted">Unassigned</span>
+              {% endif %}
+            </td>
+            <td><span class="badge badge--priority-{{ task.priority }}">{{ task.priority.capitalize() }}</span></td>
+            <td>
+              {% if task.due_date %}
+              <span class="{% if task.due_date < today and task.status != 'done' %}text-danger{% endif %}">
+                {{ task.due_date.strftime('%b %d, %Y') }}
+              </span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              <!-- Status inline update -->
+              {% if my_role == 'admin' or task.assigned_to_id == current_user.id %}
+              <form method="POST" action="{{ url_for('main_routes.update_task_status', task_id=task.id) }}"
+                    class="status-form">
+                <select name="status" class="status-select status-select--{{ task.status }}"
+                        onchange="this.form.submit()">
+                  <option value="todo"        {% if task.status=='todo' %}selected{% endif %}>To Do</option>
+                  <option value="in_progress" {% if task.status=='in_progress' %}selected{% endif %}>In Progress</option>
+                  <option value="done"        {% if task.status=='done' %}selected{% endif %}>Done</option>
+                </select>
+              </form>
+              {% else %}
+              <span class="badge badge--{{ task.status }}">{{ task.status.replace('_',' ').title() }}</span>
+              {% endif %}
+            </td>
+            {% if my_role == 'admin' %}
+            <td>
+              <form method="POST" action="{{ url_for('main_routes.delete_task', task_id=task.id) }}"
+                    onsubmit="return confirm('Delete this task?')">
+                <button type="submit" class="icon-btn icon-btn--danger" title="Delete">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                    <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+                  </svg>
+                </button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No tasks yet. Add the first one!</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Members Panel -->
+  <div class="dash-panel">
+    <div class="panel-header">
+      <h3>Members</h3>
+    </div>
+    <div class="members-list">
+      {% for m in members %}
+      <div class="member-row">
+        <div class="mini-avatar">{{ m.user.name[0].upper() }}</div>
+        <div class="member-info">
+          <span class="member-name">{{ m.user.name }}</span>
+          <span class="member-email">{{ m.user.email }}</span>
+        </div>
+        <span class="badge {% if m.role == 'admin' %}badge--admin{% else %}badge--member{% endif %}">
+          {{ m.role.capitalize() }}
+        </span>
+        {% if my_role == 'admin' and m.user_id != current_user.id %}
+        <form method="POST"
+              action="{{ url_for('main_routes.remove_member', project_id=project.id, user_id=m.user_id) }}"
+              onsubmit="return confirm('Remove {{ m.user.name }} from this project?')">
+          <button type="submit" class="icon-btn icon-btn--danger" title="Remove">✕</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Modals ── -->
+
+<!-- Add Task Modal -->
+<div id="addTaskModal" class="modal-overlay" onclick="closeModalOutside(event,'addTaskModal')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Task</h3>
+      <button class="modal-close" onclick="closeModal('addTaskModal')">✕</button>
+    </div>
+    <form method="POST" action="{{ url_for('main_routes.create_task', project_id=project.id) }}">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Title *</label>
+          <input type="text" name="title" class="dash-input" placeholder="Task title" required />
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="description" class="dash-input dash-textarea" placeholder="What needs to be done?"></textarea>
+        </div>
+        <div class="modal-row">
+          <div class="form-group">
+            <label>Priority</label>
+            <select name="priority" class="dash-input">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Due Date</label>
+            <input type="date" name="due_date" class="dash-input" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Assign To</label>
+          <select name="assigned_to_id" class="dash-input">
+            <option value="">— Unassigned —</option>
+            {% for m in members %}
+            <option value="{{ m.user_id }}">{{ m.user.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-ghost" onclick="closeModal('addTaskModal')">Cancel</button>
+        <button type="submit" class="btn-primary">Add Task</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Member Modal (Admin only) -->
+{% if my_role == 'admin' %}
+<div id="addMemberModal" class="modal-overlay" onclick="closeModalOutside(event,'addMemberModal')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Member</h3>
+      <button class="modal-close" onclick="closeModal('addMemberModal')">✕</button>
+    </div>
+    <form method="POST" action="{{ url_for('main_routes.add_member', project_id=project.id) }}">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>User Email *</label>
+          <input type="email" name="email" class="dash-input" placeholder="user@example.com" required />
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select name="role" class="dash-input">
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-ghost" onclick="closeModal('addMemberModal')">Cancel</button>
+        <button type="submit" class="btn-primary">Add Member</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
+</script>
+{% endblock %}

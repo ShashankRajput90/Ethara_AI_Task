@@ -1,0 +1,77 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Projects — TaskFlow{% endblock %}
+{% block topbar_title %}Projects{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h2 class="page-title">All Projects</h2>
+  <button class="btn-primary" onclick="openModal('createProjectModal')">+ New Project</button>
+</div>
+
+{% if projects %}
+<div class="projects-grid">
+  {% for project in projects %}
+  <a href="{{ url_for('main_routes.project_detail', project_id=project.id) }}" class="project-card">
+    <div class="project-card-top">
+      <div class="project-card-icon">{{ project.name[0].upper() }}</div>
+      <div>
+        <h3 class="project-card-name">{{ project.name }}</h3>
+        <p class="project-card-desc">{{ project.description or 'No description' }}</p>
+      </div>
+    </div>
+    <div class="project-card-stats">
+      <span>{{ project.tasks|length }} tasks</span>
+      <span>{{ project.members|length }} members</span>
+      <span class="project-card-date">{{ project.created_at.strftime('%b %d, %Y') }}</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-page-state">
+  <svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/>
+  </svg>
+  <h3>No projects yet</h3>
+  <p>Create your first project to get started</p>
+  <button class="btn-primary" onclick="openModal('createProjectModal')">+ New Project</button>
+</div>
+{% endif %}
+
+<!-- Create Project Modal -->
+<div id="createProjectModal" class="modal-overlay" onclick="closeModalOutside(event,'createProjectModal')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Create New Project</h3>
+      <button class="modal-close" onclick="closeModal('createProjectModal')">✕</button>
+    </div>
+    <form method="POST" action="{{ url_for('main_routes.create_project') }}">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="proj-name">Project Name *</label>
+          <input type="text" id="proj-name" name="name" class="dash-input" placeholder="e.g. Website Redesign" required />
+        </div>
+        <div class="form-group">
+          <label for="proj-desc">Description</label>
+          <textarea id="proj-desc" name="description" class="dash-input dash-textarea" placeholder="What is this project about?"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-ghost" onclick="closeModal('createProjectModal')">Cancel</button>
+        <button type="submit" class="btn-primary">Create Project</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
+</script>
+{% endblock %}

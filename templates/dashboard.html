@@ -1,0 +1,126 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Dashboard — TaskFlow{% endblock %}
+{% block topbar_title %}Overview{% endblock %}
+
+{% block content %}
+
+<!-- Stat Cards -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon stat-icon--blue">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+    </div>
+    <div class="stat-body">
+      <span class="stat-label">Total Tasks</span>
+      <span class="stat-value">{{ stats.total }}</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon stat-icon--yellow">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+    </div>
+    <div class="stat-body">
+      <span class="stat-label">In Progress</span>
+      <span class="stat-value">{{ stats.in_progress }}</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon stat-icon--green">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div class="stat-body">
+      <span class="stat-label">Completed</span>
+      <span class="stat-value">{{ stats.done }}</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon stat-icon--red">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+    </div>
+    <div class="stat-body">
+      <span class="stat-label">Overdue</span>
+      <span class="stat-value">{{ stats.overdue }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom two columns -->
+<div class="dash-columns">
+
+  <!-- Recent Tasks -->
+  <div class="dash-panel">
+    <div class="panel-header">
+      <h3>My Recent Tasks</h3>
+      <a href="{{ url_for('main_routes.projects') }}" class="panel-link">View Projects →</a>
+    </div>
+    {% if recent_tasks %}
+    <div class="task-list">
+      {% for task in recent_tasks %}
+      <div class="task-row">
+        <div class="task-row-left">
+          <span class="badge badge--{{ task.status }}">{{ task.status.replace('_',' ').title() }}</span>
+          <span class="task-title">{{ task.title }}</span>
+        </div>
+        <div class="task-row-right">
+          <span class="badge badge--priority-{{ task.priority }}">{{ task.priority.capitalize() }}</span>
+          {% if task.due_date %}
+          <span class="task-due {% if task.due_date < today and task.status != 'done' %}task-due--overdue{% endif %}">
+            {{ task.due_date.strftime('%b %d') }}
+          </span>
+          {% endif %}
+          <span class="task-project">{{ task.project.name }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No tasks assigned to you yet.</p>
+      <a href="{{ url_for('main_routes.projects') }}" class="btn-primary-sm">Browse Projects</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- My Projects -->
+  <div class="dash-panel">
+    <div class="panel-header">
+      <h3>My Projects</h3>
+      <a href="{{ url_for('main_routes.projects') }}" class="panel-link">See all →</a>
+    </div>
+    {% if projects %}
+    <div class="project-mini-list">
+      {% for project in projects[:5] %}
+      <a href="{{ url_for('main_routes.project_detail', project_id=project.id) }}" class="project-mini-card">
+        <div class="project-mini-dot"></div>
+        <div class="project-mini-body">
+          <span class="project-mini-name">{{ project.name }}</span>
+          <span class="project-mini-count">{{ project.tasks|length }} tasks</span>
+        </div>
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>You haven't joined any projects yet.</p>
+      <a href="{{ url_for('main_routes.projects') }}" class="btn-primary-sm">Create a Project</a>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

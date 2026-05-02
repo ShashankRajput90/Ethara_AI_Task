@@ -6,11 +6,7 @@ from datetime import date, datetime
 
 main_routes = Blueprint("main_routes", __name__)
 
-
-# ─────────────────────────────────────────
 # Helpers
-# ─────────────────────────────────────────
-
 def get_member_role(project, user):
     """Return the role of `user` in `project`, or None if not a member."""
     m = ProjectMember.query.filter_by(project_id=project.id, user_id=user.id).first()
@@ -23,10 +19,7 @@ def require_project_admin(project):
         abort(403)
 
 
-# ─────────────────────────────────────────
 # Auth
-# ─────────────────────────────────────────
-
 @main_routes.route("/")
 def home():
     return redirect(url_for("main_routes.login"))
@@ -78,10 +71,7 @@ def logout():
     return redirect(url_for("main_routes.login"))
 
 
-# ─────────────────────────────────────────
 # Dashboard
-# ─────────────────────────────────────────
-
 @main_routes.route("/dashboard")
 @login_required
 def dashboard():
@@ -112,11 +102,7 @@ def dashboard():
                            today=today,
                            page="dashboard")
 
-
-# ─────────────────────────────────────────
 # Projects
-# ─────────────────────────────────────────
-
 @main_routes.route("/projects")
 @login_required
 def projects():
@@ -177,11 +163,7 @@ def delete_project(project_id):
     db.session.commit()
     return redirect(url_for("main_routes.projects"))
 
-
-# ─────────────────────────────────────────
 # Members
-# ─────────────────────────────────────────
-
 @main_routes.route("/projects/<int:project_id>/members/add", methods=["POST"])
 @login_required
 def add_member(project_id):
@@ -213,11 +195,7 @@ def remove_member(project_id, user_id):
     db.session.commit()
     return redirect(url_for("main_routes.project_detail", project_id=project_id))
 
-
-# ─────────────────────────────────────────
 # Tasks
-# ─────────────────────────────────────────
-
 @main_routes.route("/projects/<int:project_id>/tasks/create", methods=["POST"])
 @login_required
 def create_task(project_id):
